@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Results from "./Results";
-import confetti from "canvas-confetti"; // 🎆 thêm thư viện pháo giấy
+import confetti from "canvas-confetti";
 
 const quizData = [
   {
@@ -163,6 +163,7 @@ const Quiz = () => {
   );
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [isQuizEnded, setIsQuizEnded] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
   const [score, setScore] = useState(0);
 
   const handleSelectedOption = (option, index) => {
@@ -186,17 +187,8 @@ const Quiz = () => {
     }
   };
 
-  const restartQuiz = () => {
-    setCurrentQuestion(0);
-    setIsQuizEnded(false);
-    setScore(0);
-    setUserAnswers(Array.from({ length: quizData.length }));
-    setOptionSelected("");
-  };
-
   const reviewQuiz = () => {
-    setCurrentQuestion(0);
-    setIsQuizEnded(false);
+    setIsReviewing(true);
   };
 
   useEffect(() => {
@@ -215,24 +207,17 @@ const Quiz = () => {
     }
   }, [optionSelected]);
 
-  // 🔔 Khi quiz kết thúc: phát nhạc & bắn pháo giấy
   useEffect(() => {
     if (isQuizEnded) {
       const audio = new Audio("/sounds/applause.mp3");
       audio.volume = 0.8;
       audio.play();
 
-      // 🎉 hiệu ứng pháo giấy
-      const duration = 3 * 1000; // 3 giây
+      const duration = 3 * 1000;
       const end = Date.now() + duration;
 
       const frame = () => {
-        confetti({
-          particleCount: 5,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0 },
-        });
+        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
         confetti({
           particleCount: 5,
           angle: 120,
@@ -245,15 +230,74 @@ const Quiz = () => {
         }
       };
       frame();
+
+      // Lưu cờ "đã làm bài" để không cho làm lại
+      localStorage.setItem("quizDone", "true");
     }
   }, [isQuizEnded]);
+
+  useEffect(() => {
+    const done = localStorage.getItem("quizDone");
+    if (done === "true") {
+      setIsQuizEnded(true);
+    }
+  }, []);
+
+  // 🟢 Khi người dùng chọn "Xem lại"
+  if (isReviewing) {
+    return (
+      <div className="review">
+        <h2>📘 Xem lại bài làm của bạn</h2>
+        {quizData.map((q, idx) => {
+          const userIndex = userAnswers[idx];
+          const userChoice = q.options[userIndex];
+          const isCorrect = userChoice === q.answer;
+
+          return (
+            <div key={idx} className="review-item" style={{ marginBottom: 20 }}>
+              <p>
+                <strong>{q.question}</strong>
+              </p>
+              <ul>
+                {q.options.map((opt) => (
+                  <li
+                    key={opt}
+                    style={{
+                      color:
+                        opt === q.answer
+                          ? "green"
+                          : opt === userChoice
+                          ? "red"
+                          : "black",
+                      fontWeight:
+                        opt === q.answer || opt === userChoice
+                          ? "bold"
+                          : "normal",
+                    }}
+                  >
+                    {opt}
+                    {opt === q.answer && " ✅"}
+                    {opt === userChoice && opt !== q.answer && " ❌"}
+                  </li>
+                ))}
+              </ul>
+              <hr />
+            </div>
+          );
+        })}
+        <p>
+          Điểm số: <strong>{score}</strong> / {quizData.length}
+        </p>
+        <p>✨ Bạn chỉ được làm bài một lần duy nhất!</p>
+      </div>
+    );
+  }
 
   if (isQuizEnded) {
     return (
       <Results
         score={score}
         totalQuestionNum={quizData.length}
-        restartQuiz={restartQuiz}
         reviewQuiz={reviewQuiz}
       />
     );
@@ -277,9 +321,11 @@ const Quiz = () => {
 
       {optionSelected ? (
         optionSelected === quizData[currentQuestion].answer ? (
-          <p className="correct-answer">✅ Câu trả lời của bạn chính xác!</p>
+          <p className="correct-answer">✅ Chính xác!</p>
         ) : (
-          <p className="incorrect-answer">❌ Câu trả lời sai!</p>
+          <p className="incorrect-answer">
+            ❌ Sai rồi! Đáp án đúng: {quizData[currentQuestion].answer}
+          </p>
         )
       ) : null}
 
