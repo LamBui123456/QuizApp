@@ -11,9 +11,9 @@ const Results = ({ score, totalQuestionNum, restartQuiz, reviewQuiz }) => {
         <button className="result-button" onClick={reviewQuiz}>
           Xem lại
         </button>
-        {/* <button className="result-button" onClick={restartQuiz}>
+        <button className="result-button" onClick={restartQuiz}>
           Làm lại
-        </button> */}
+        </button>
       </div>
     </div>
   );
